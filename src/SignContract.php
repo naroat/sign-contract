@@ -1,9 +1,7 @@
 <?php
 
 /**
- * 合同签署 - 上上签平台
- * 创建债权店铺 - 判断是否有上上签用户 - 没有就创建上上签企业账户
- * 用户购买后申请签约 - 提交信息后，债权店铺发起合同签署
+ * 电子合同签署 - 对接上上签
  */
 
 namespace RanPack\SignContract;
@@ -12,1018 +10,136 @@ require(__DIR__ . '/util/HttpUtils.php');
 
 class SignContract
 {
-    protected $author;
 
-    //测试环境
-    const ServerHost = 'https://openapi.bestsign.info';
-
-    //正式环境
-//    const ServerHost = 'https://openapi.bestsign.cn';
     /* 用户服务 */
-    const RegisterUri = '/openapi/v2/user/reg/';                                   //注册个人、企业uri
-    const GetCertUri = '/openapi/v2/user/getCert/';                                //查询证书编号
-    const GetPersonalCredential = '/openapi/v2/user/getPersonalCredential/';       //获取个人用户的证件信息
-    const GetEnterpriseCredential = '/openapi/v2/user/getEnterpriseCredential/';   //获取企业用户的证件信息
-    const AsyncApplyCertStatus = '/openapi/v2/user/async/applyCert/status/';       //异步申请证书请求发送成功后，根据返回的 taskId 调用本接口查询申请结果
-    const CertInfo = '/openapi/v2/user/cert/info/';                                //获取证书详细信息
+    const RegisterUri = '/user/reg/';                                   //注册个人、企业uri
+    const GetCertUri = '/user/getCert/';                                //查询证书编号
+    const GetPersonalCredential = '/user/getPersonalCredential/';       //获取个人用户的证件信息
+    const GetEnterpriseCredential = '/user/getEnterpriseCredential/';   //获取企业用户的证件信息
+    const AsyncApplyCertStatus = '/user/async/applyCert/status/';       //异步申请证书请求发送成功后，根据返回的 taskId 调用本接口查询申请结果
+    const CertInfo = '/user/cert/info/';                                //获取证书详细信息
     /* 签名/印章图片服务 */
-    const SignatureImageUserCreate = '/openapi/v2/signatureImage/user/create/';    //生成用户签名/印章图片
-    const SignatureImageUserUpload = '/openapi/v2/signatureImage/user/upload/';    //上传用户签名/印章图片
-    const SignatureImageUserDownload = '/openapi/v2/signatureImage/user/download/';//下载用户签名/印章图片
+    const SignatureImageUserCreate = '/signatureImage/user/create/';    //生成用户签名/印章图片
+    const SignatureImageUserUpload = '/signatureImage/user/upload/';    //上传用户签名/印章图片
+    const SignatureImageUserDownload = '/signatureImage/user/download/';//下载用户签名/印章图片
     /* 文件存储服务 */
-    const StorageUpload = '/openapi/v2/storage/upload/';                            //上传合同文件
-    const StorageAddPDFElements = '/openapi/v2/storage/addPDFElements//';           //为PDF文件添加元素
-    const StorageDownload = '/openapi/v2/storage/download/';                        //下载文件
-    const PDFVerifySignatures = '/openapi/v2/pdf/verifySignatures/';                //PDF文件验签
+    const StorageUpload = '/storage/upload/';                            //上传合同文件
+    const StorageAddPDFElements = '/storage/addPDFElements//';           //为PDF文件添加元素
+    const StorageDownload = '/storage/download/';                        //下载文件
+    const PDFVerifySignatures = '/pdf/verifySignatures/';                //PDF文件验签
     /* 单文档合同服务 */
-    const StorageContractUpload = '/openapi/v2/storage/contract/upload/';           //上传并创建合同
-    const ContractSignCert = '/openapi/v2/contract/sign/cert/';                     //签署合同（即自动签）
-    const ContractSend = '/openapi/v2/contract/send/';                              //发送合同（即手动签，指定图片大小）
-    const ContractCancel = '/openapi/v2/contract/cancel/';                          //撤销合同
-    const StorageContractLock = '/openapi/v2/storage/contract/lock/';               //锁定并结束合同
-    const ContractGetInfo = '/openapi/v2/contract/getInfo/';                        //查询合同信息
-    const ContractGetSignerConfig = '/openapi/v2/contract/getSignerConfig/';        //获取合同签署参数
-    const ContractGetSignerStatus = '/openapi/v2/contract/getSignerStatus/';        //查询合同签署者状态
-    const ContractDownload = '/openapi/v2/contract/download/';                      //下载合同文件
-    const ContractGetPreviewURL = '/openapi/v2/contract/getPreviewURL/';            //获取预览页URL
-    const ContractCreate = '/openapi/v2/contract/create/';                          //创建合同
-    const ContractCreateAttachment = '/openapi/v2/contract/createAttachment/';      //生成合同附页
-    const ContractDownloadAttachment = '/openapi/v2/contract/downloadAttachment/';  //下载合同附页文件
-    const ContractSignKeywords = '/openapi/v2/contract/sign/keywords/';             //关键字定位签署合同
-    const ContractVerifyContractFileHash = '/openapi/v2/contract/verifyContractFileHash';       //在线验签（通过合同ID和哈希值）
-    const ContractGetApplyArbitrationURL = '/openapi/v2/contract/getApplyArbitrationURL/';      //获取存证页URL
-    const DistContractPdfAddAttachment = '/openapi/v2/dist/contract/pdfAddAttachment/';         //获取存证页URL
+    const StorageContractUpload = '/storage/contract/upload/';           //上传并创建合同
+    const ContractSignCert = '/contract/sign/cert/';                     //签署合同（即自动签）
+    const ContractSend = '/contract/send/';                              //发送合同（即手动签，指定图片大小）
+    const ContractCancel = '/contract/cancel/';                          //撤销合同
+    const StorageContractLock = '/storage/contract/lock/';               //锁定并结束合同
+    const ContractGetInfo = '/contract/getInfo/';                        //查询合同信息
+    const ContractGetSignerConfig = '/contract/getSignerConfig/';        //获取合同签署参数
+    const ContractGetSignerStatus = '/contract/getSignerStatus/';        //查询合同签署者状态
+    const ContractDownload = '/contract/download/';                      //下载合同文件
+    const ContractGetPreviewURL = '/contract/getPreviewURL/';            //获取预览页URL
+    const ContractCreate = '/contract/create/';                          //创建合同
+    const ContractCreateAttachment = '/contract/createAttachment/';      //生成合同附页
+    const ContractDownloadAttachment = '/contract/downloadAttachment/';  //下载合同附页文件
+    const ContractSignKeywords = '/contract/sign/keywords/';             //关键字定位签署合同
+    const ContractVerifyContractFileHash = '/contract/verifyContractFileHash';       //在线验签（通过合同ID和哈希值）
+    const ContractGetApplyArbitrationURL = '/contract/getApplyArbitrationURL/';      //获取存证页URL
+    const DistContractPdfAddAttachment = '/dist/contract/pdfAddAttachment/';         //获取存证页URL
     /** 模版签署功能 **/
-    const TemplateGetTemplateVars = '/openapi/v2/template/getTemplateVars/';        //获取模版变量
-    const TemplateCreateContractPdf = '/openapi/v2/template/createContractPdf/';    //通过模版生成合同文件
-    const ContractCreateByTemplate = '/openapi/v2/contract/createByTemplate/';      //通过模版创建合同
-    const ContractSignTemplate = '/openapi/v2/contract/sign/template/';             //用模版变量签署合同
-    const TemplateGetTemplate = '/openapi/v2/template/getTemplate/';                //获取模版信息
-    const ContractSendByTemplate = '/openapi/v2/contract/sendByTemplate/';          //用模版变量的手动签
-    const PageTemplateCreate = '/openapi/v2/page/template/create/';                 //获取创建模版的地址
-    const PageTemplateModify = '/openapi/v2/page/template/modify/';                 //获取编辑模版的地址
-    const TemplateGetTemplates = '/openapi/v2/template/getTemplates/';              //获取开发者模版列表
-    const PageTemplatePreview = '/openapi/v2/page/template/preview/';               //预览模版
-    const DistTemplateCreateContract = '/openapi/v2/dist/template/createContract/'; //上传模板变量创建合同
+    const TemplateGetTemplateVars = '/template/getTemplateVars/';        //获取模版变量
+    const TemplateCreateContractPdf = '/template/createContractPdf/';    //通过模版生成合同文件
+    const ContractCreateByTemplate = '/contract/createByTemplate/';      //通过模版创建合同
+    const ContractSignTemplate = '/contract/sign/template/';             //用模版变量签署合同
+    const TemplateGetTemplate = '/template/getTemplate/';                //获取模版信息
+    const ContractSendByTemplate = '/contract/sendByTemplate/';          //用模版变量的手动签
+    const PageTemplateCreate = '/page/template/create/';                 //获取创建模版的地址
+    const PageTemplateModify = '/page/template/modify/';                 //获取编辑模版的地址
+    const TemplateGetTemplates = '/template/getTemplates/';              //获取开发者模版列表
+    const PageTemplatePreview = '/page/template/preview/';               //预览模版
+    const DistTemplateCreateContract = '/dist/template/createContract/'; //上传模板变量创建合同
+    /** 补充 **/
+    const RealNameStatusBestsign = '/realName/status/bestsign/'; //核验上上签SaaS用户实名认证状态
+    const DistSignatureImageEntCreate = '/dist/signatureImage/ent/create/'; //生成企业印章图片
+
+    //接口地址
+    private $_serverHost = '';
 
     //开发者编号
-    public $developerId = '';
+    private $_developerId = '';
 
-    //unix 时间戳+4位随机数
-    public $rtick;
+    //私钥
+    private $_pem = '';
 
-    //签名串计算方法
-    public $signType = 'rsa';
-
-    //签名串
-    public $sign = '';
-
-    public $private_key = '';
-
+    //http实例（主要用来发送请求）
     private $_http_utils = null;
 
     public function __construct($init)
     {
-        $this->rtick = time() . rand(1000, 9999);
+        $this->_serverHost = $init['_serverHost'];
 
-        $this->developerId = $init['DeveloperId'];
+        $this->_developerId = $init['_developerId'];
 
-        $this->_keyInit($init['pem'], "");
+        $this->_pem = $this->_formatPem($init['_pem'], "");
 
         $this->_http_utils = new HttpUtils();
     }
 
-    //注册个人用户并申请证书
-    public function register()
+    /*
+     * * * * * * * * * * * * *
+     * 通用的请求方式
+     * * * * * * * * * * * * *
+     */
+
+    /**
+     * 通用的post请求方式
+     *
+     * @param $path
+     * @param $data
+     * @param array $header_data
+     * @return mixed
+     * @throws \Exception
+     */
+    public function sendPostApi($path, $data, $header_data=array())
     {
-        //需要的必填参数
-        $param = [
-            'account' => '15013070796',                 //用户的唯一标识，可以是邮箱、手机号、证件号
-            'name' => '陶然',                            //用户名称,必须和证件上登记的姓名一致
-            'userType' => '1',                          //用户类型,1 表示个人
-            'credential' => json_encode([               //用户证件信息对象
-                'identity' => '522428000000000000'      //用户证件号
-            ]),
-            'applyCert' => '1',                         //是否申请证书，申请填写为1
-        ];
+        $post_data = json_encode($data);
 
-        //生成签名
-        $sign = self::signCreate($param, self::RegisterUri, 'post');
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
 
-        //组合api url
-        $api_url = self::apiUrl(self::RegisterUri, $sign);
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
 
-        //请求注册
-        $res = self::http_post($api_url, $param);
-
-        return $res;
-    }
-
-    //注册企业用户并申请证书
-    public function registerCompany()
-    {
-        //需要的必填参数
-        $param = [
-            'account' => '15013070796',                 //用户的唯一标识，可以是邮箱、手机号、证件号
-            'name' => '陶然',                            //用户名称,必须和证件上登记的姓名一致
-            'userType' => '2',                          //用户类型,1 表示个人，2 表示企业
-            'credential' => json_encode([               //用户证件信息对象
-                'regcode' => '',                        //三证合一传：统一社会信用代码；/老三证传：：工商注册号；/个体户传：：工商注册号
-                'orgcode' => '',                        //三证合一传：统一社会信用代码；/老三证传：：组织机构代码；/个体户传：：''
-                'taxcode' => '',                        //三证合一传：统一社会信用代码；/老三证传：：税务登记证；/个体户传：：''
-                'legalPerson' => '',                    //法定代表人姓名或经办人姓名
-                'legalPersonIdentity' => '',            //法定代表人证件号或经办人证件号
-                'legalPersonIdentityType' => '',        //法定代表人证件类型或经办人证件类型，0-居民身份证
-                'contactMobile' => '',                  //联系手机
-            ]),
-            'applyCert' => '1',                         //是否申请证书，申请填写为1
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = self::signApiUrl($param, self::RegisterUri, 'post');
-
-        //请求注册
-        $res = self::http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    //查询证书编号
-    public function getCert()
-    {
-        $param = [
-            'account' => ''                 //用户唯一标识
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::GetCertUri, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
+        return $response;
     }
 
     /**
-     * 获取个人用户的证件信息
+     * 通用的get请求方式
+     *
+     * @param $path
+     * @param $data
+     * @param array $header_data
+     * @return mixed
+     * @throws \Exception
      */
-    public function getPersonalCredential($data)
+    public function sendGetApi($path, $data, $header_data=array())
     {
-        $param = [
-            'account' => $data['account']                 //用户唯一标识
-        ];
-        $param = json_encode($param);
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::GetPersonalCredential, 'post');
+        $url_params = $data;
 
-        $header_data = array();
-        //请求
-//        $res = $this->http_post($sign_api, $param);
-        $res = $this->execute('POST', $sign_api, $param, $header_data, true);
+        //url
+        $url = $this->_getApiUrl($path, $url_params, null);
 
-        return $res;
+        //content
+        $response = $this->execute('GET', $url, null, $header_data, true);
+
+        return $response;
     }
 
-    /**
-     * 异步申请状态查询
+    /*
+     * * * * * * * * * * * * *
+     * 基础工具
+     * * * * * * * * * * * * *
      */
-    public function asyncApplyCertStatus()
-    {
-        $param = [
-            'account' => '',                 //用户唯一标识
-            'taskId' => '',                  //任务单号
-        ];
 
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::AsyncApplyCertStatus, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 获取证书详细信息
-     */
-    public function certInfo()
-    {
-        $param = [
-            'account' => '',                 //用户唯一标识
-            'certId' => '',                  //证书编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::CertInfo, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-
-    /**
-     * 查询企业用户证件信息
-     */
-    public function getEnterpriseCredential($data)
-    {
-
-        $param = [
-            'account' => $data['account']                 //用户唯一标识
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::GetEnterpriseCredential, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 生成用户签名/印章图片
-     */
-    public function signatureImageUserCreate()
-    {
-        $param = [
-            'account' => ''                 //用户唯一标识
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::SignatureImageUserCreate, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 上传用户签名/印章图片
-     */
-    public function signatureImageUserUpload()
-    {
-        $param = [
-            'account' => '',                //用户唯一标识
-            'imageData' => ''               //图片文件内容,图片经 Base64 编码后的字符串
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::SignatureImageUserUpload, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 下载用户签名/印章图片
-     */
-    public function signatureImageUserDownload()
-    {
-        $param = [
-            'account' => '',                 //用户唯一标识
-            'imageName' => '',                 //签名/印章图片名称
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::SignatureImageUserDownload, 'get');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 上传合同文件
-     */
-    public function storageUpload()
-    {
-        $param = [
-            'account' => '',                 //用户唯一标识
-            'fdata' => '',                   //文件数据，base64编码
-            'fmd5' => '',                    //文件md5值
-            'ftype' => '',                   //文件类型
-            'fname' => '',                   //文件名
-            'fpages' => '',                  //文件页数
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::StorageUpload, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 为PDF文件添加元素
-     */
-    public function storageAddPDFElements()
-    {
-        $param = [
-            'account' => '',                 //用户唯一标识
-            'fid' => '',                     //源文件编号,源文件必须是 PDF 文件格式
-            'elements' => '',                //要添加的元素集合,json array 格式
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::StorageAddPDFElements, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 下载文件
-     */
-    public function storageDownload()
-    {
-        $param = [
-            'fid' => '',                     //上传合同文件得到的文件编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::StorageDownload, 'get');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * PDF文件验签
-     */
-    public function PDFVerifySignatures()
-    {
-        $param = [
-            'pdfData' => '',                     //PDF 文件 base64 编码过的字符串
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::PDFVerifySignatures, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 上传并创建合同
-     */
-    public function storageContractUpload()
-    {
-        $param = [
-            'account' => '',                //用户唯一标识
-            'fmd5' => '',                   //文件 md5 值
-            'ftype' => '',                  //文件类型
-            'fname' => '',                  //文件名
-            'fpages' => '',                 //文件页数
-            'fdata' => '',                  //文件数据， base64 编码
-            'title' => '',                  //合同标题
-            'expireTime' => '',             //合同能够签署 的截止时间
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::StorageContractUpload, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 签署合同（即自动签）
-     */
-    public function contractSignCert()
-    {
-        $param = [
-            'contractId' => '',                 //合同编号
-            'signer' => '',                     //签署者
-            'signaturePositions' => [           //指定的签署 位 置 ， json array 格式
-                'x' => '',                      //横坐标，按页面尺寸 的百分比计算，取值 0.0 - 1.0。以左上角为 原点
-                'y' => '',                      //纵坐标
-            ],
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractSignCert, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 发送合同（即手动签，指定图片大小）
-     */
-    public function contractSend()
-    {
-        $param = [
-            'contractId' => '',                 //合同编号
-            'signer' => '',                     //签署者
-            'signaturePositions' => [           //指定的签署 位 置 ， json array 格式
-                'x' => '',                      //横坐标，按页面尺寸 的百分比计算，取值 0.0 - 1.0。以左上角为 原点
-                'y' => '',                      //纵坐标
-                'pageNum' => '',                //页码
-                'rptPageNums' => '',            //当前位置的签名需要复制到的目标页 码列表。该参数用于控制是否将当前位 置的签名复制到其他页
-                'type' => '',                   //日期类型专用，当签署位置是“日期” 类型的签名时，本参数需要填写 “date”
-                'dateTimeFormat' => '',         //日期
-                'fontSize' => '',               //日期的字号大小
-            ],
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractSend, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 撤销合同
-     */
-    public function contractCancel()
-    {
-        $param = [
-            'contractId' => '',                 //合同编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractCancel, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 锁定并结束合同
-     */
-    public function storageContractLock()
-    {
-        $param = [
-            'contractId' => '',                 //合同编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::StorageContractLock, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 查询合同信息
-     */
-    public function contractGetInfo()
-    {
-        $param = [
-            'contractId' => '',                 //合同编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractGetInfo, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 获取合同签署参数
-     */
-    public function contractGetSignerConfig()
-    {
-        $param = [
-            'account' => '',                 //签署者
-            'contractId' => '',              //合同编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractGetSignerConfig, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 查询合同签署者状态
-     */
-    public function contractGetSignerStatus()
-    {
-        $param = [
-            'contractId' => '',              //合同编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractGetSignerStatus, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 下载合同文件
-     */
-    public function contractDownload()
-    {
-        $param = [
-            'contractId' => '',              //合同编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractDownload, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 、获取预览页URL
-     */
-    public function contractGetPreviewURL()
-    {
-        $param = [
-            'contractId' => '',              //合同编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractGetPreviewURL, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 创建合同
-     */
-    public function contractCreate()
-    {
-        $param = [
-            'contractId' => '',              //合同编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractCreate, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 生成合同附页
-     */
-    public function contractCreateAttachment()
-    {
-        $param = [
-            'contractId' => '',              //合同编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractCreateAttachment, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 下载合同附页文件
-     */
-    public function contractDownloadAttachment()
-    {
-        $param = [
-            'contractId' => '',              //合同编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractDownloadAttachment, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 关键字定位签署合同
-     */
-    public function contractSignKeywords()
-    {
-        $param = [
-            'contractId' => '',              //合同编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractSignKeywords, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 在线验签（通过合同ID和哈希值）
-     */
-    public function contractVerifyContractFileHash()
-    {
-        $param = [
-            'contractId' => '',              //合同编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractVerifyContractFileHash, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 获取存证页URL
-     */
-    public function contractGetApplyArbitrationURL()
-    {
-        $param = [
-            'contractId' => '',              //合同编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractGetApplyArbitrationURL, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 合同PDF文件上添加附件
-     */
-    public function distContractPdfAddAttachment()
-    {
-        $param = [
-            'contractId' => '',              //合同编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::DistContractPdfAddAttachment, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 获取模版变量
-     */
-    public function templateGetTemplateVars()
-    {
-        $param = [
-            'tid' => '',                //模版编号
-            'isRetrieveAllVars' => '',  //是否获取所有变量,0 只返回变量的type 和 name；  1 返回变量的所有字段；
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::TemplateGetTemplateVars, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 通过模版生成合同文件
-     */
-    public function templateCreateContractPdf()
-    {
-        $param = [
-            'account' => '',                //合同创建者账号
-            'tid' => '',                    //模版编号
-            'templateValues' => '',         //模版变量
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::TemplateCreateContractPdf, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 通过模版创建合同
-     */
-    public function contractCreateByTemplate()
-    {
-        $param = [
-            'account' => '',               //合同创建者账号
-            'tid' => '',                   //模版编号
-            'templateToken' => '',         ///template/createContractPdf/ 返回的 templateToken
-            'title' => '',                 //合同标题
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractCreateByTemplate, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 用模版变量签署合同
-     */
-    public function contractSignTemplate()
-    {
-        $param = [
-            'account' => '',               //合同创建者账号
-            'tid' => '',                   //模版编号
-            'vars' => '',                  //模版变量值
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractSignTemplate, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 获取模版信息
-     */
-    public function templateGetTemplate()
-    {
-        $param = [
-            'account' => '',               //合同创建者账号
-            'tid' => '',                   //模版编号
-            'templateToken' => '',         ///template/createContractPdf/ 返回的 templateToken
-            'title' => '',                 //合同标题
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::TemplateGetTemplate, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-    /**
-     * 用模版变量的手动签
-     */
-    public function contractSendByTemplate()
-    {
-        $param = [
-            'account' => '',               //合同创建者账号
-            'signer' => '',                //指定给哪个用户看
-            'tid' => '',                   //模版编号
-            'varNames' => '',              //模板的变量名称
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::ContractSendByTemplate, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-    /**
-     * 获取创建模版的地址
-     */
-    public function pageTemplateCreate()
-    {
-        $param = [
-            'account' => '',               //操作者的用户标识
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::PageTemplateCreate, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-    /**
-     * 获取编辑模版的地址
-     */
-    public function pageTemplateModify()
-    {
-        $param = [
-            'account' => '',               //操作者的用户标识
-            'tid' => '',               //模版编号
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::PageTemplateModify, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-    /**
-     * 获取开发者模版列表
-     */
-    public function templateGetTemplates()
-    {
-        $param = [
-            'categoryName' => '',               //类别名称
-            'pageSize' => '',               //每页显示的条数
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::TemplateGetTemplates, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-    /**
-     * 预览模板
-     */
-    public function pageTemplatePreview()
-    {
-        $param = [
-            'tid' => '',               //模版编号
-            'account' => '',               //操作者的用户标识
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::PageTemplatePreview, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-    /**
-     * 上传模板变量创建合同
-     */
-    public function distTemplateCreateContract()
-    {
-        $param = [
-            'tid' => '',               //模版编号
-            'account' => '',           //操作者的用户标识
-            'templateValues' => '',    //模版变量
-            'title' => '',             //合同标题
-        ];
-
-        //生成签名 + 组合api url
-        $sign_api = $this->signApiUrl($param, self::DistTemplateCreateContract, 'post');
-
-        //请求
-        $res = $this->http_post($sign_api, $param);
-
-        return $res;
-    }
-
-    /**
-     * 生成签名 + 组合api url
-     * @param $param
-     * @param $uri
-     * @param $http_type
-     * @return string
-     */
-    public function signApiUrl($param, $uri, $http_type)
-    {
-        //生成签名
-        $sign = $this->signCreate($param, $uri, $http_type);
-
-        //组合api url
-        $api_url = $this->apiUrl($uri, $sign);
-
-        return $api_url;
-    }
-
-    /**
-     * 生成签名
-     */
-    public function signCreate($param, $uri, $type = 'get')
-    {
-        //一、获取签名原文字符串
-
-        $base_param = [
-            'developerId' => $this->developerId,
-            'rtick' => $this->rtick,
-            'signType' => $this->signType,
-        ];
-
-        $sign_str = '';
-
-        if ($type == 'post') {
-
-            //需要签名计算的参数进行字典排序，得到一个字符串
-            ksort($base_param);
-
-            foreach ($base_param as $key => $val) {
-                $sign_str .= $key . '=' . $val;
-            }
-
-            //把请求 path 附加到字符串后面
-            $sign_str .= $uri;
-
-            //计算request body的md5值
-            $request_body = md5($param);
-
-            //最终的签名原字符串
-            $sign_str .= $request_body;
-        } else {
-
-            //需要签名计算的参数进行字典排序，得到一个字符串
-            $base_param = array_merge($base_param, $param);
-
-            ksort($base_param);
-
-            foreach ($base_param as $key => $val) {
-                $sign_str .= $key . '=' . $val;
-            }
-
-            //把请求 path 附加到字符串后面,最终的签名原字符串
-            $sign_str .= $uri;
-
-        }
-
-        //二、rsa加密
-        //获取私钥
-        $private_key = $this->private_key;
-
-        //生成签名(使用rsa算法：SHA1withRSA)
-        $signature = openssl_sign($sign_str, $signature, $private_key) ? base64_encode($signature) : null;
-
-//        $signature = urlencode($signature);
-
-//        $signature = openssl_private_encrypt($sign_str,$signature, $private_key) ? base64_encode($signature) : null;
-
-        return $signature;
-    }
-
-    /**
-     * 组合api url
-     * @param $uri
-     * @param $sign
-     * @return string
-     */
-    public function apiUrl($uri, $sign)
-    {
-
-        $url = self::ServerHost . $uri . '?';
-
-        $url_params['sign'] = $sign;
-        $url_params['developerId'] = $this->developerId;
-        $url_params['rtick'] = $this->rtick;
-        $url_params['signType'] = 'rsa';
-
-        foreach ($url_params as $key => $value)
-        {
-            $value = urlencode($value);
-            $url = $url . $key . '=' . $value . '&';
-        }
-
-        $url = substr($url, 0, -1);
-
-        return $url;
-    }
     /**
      * 获取签名串
      * @param $args
@@ -1031,7 +147,7 @@ class SignContract
      */
     public function getRsaSign()
     {
-        $pkeyid = openssl_pkey_get_private($this->private_key);
+        $pkeyid = openssl_pkey_get_private($this->_pem);
         if (!$pkeyid)
         {
             throw new \Exception("openssl_pkey_get_private wrong!", -1);
@@ -1048,7 +164,7 @@ class SignContract
         return base64_encode($sign);
     }
 
-    private function _keyInit($rsa_pem, $pem_type = '')
+    private function _formatPem($rsa_pem, $pem_type = '')
     {
         //如果是文件, 返回内容
         if (is_file($rsa_pem))
@@ -1085,8 +201,7 @@ class SignContract
             $pem = "-----BEGIN PRIVATE KEY-----\n{$pem}\n-----END PRIVATE KEY-----\n";
         }
 
-        $this->private_key = $pem;
-//        return $pem;
+        return $pem;
     }
 
     //执行请求
@@ -1127,9 +242,1208 @@ class SignContract
         }
         return $ret;
     }
-    public function sign_test()
+
+    /**
+     * @param $path：接口名
+     * @param $url_params: get请求需要放进参数中的参数
+     * @param $rtick：随机生成，标识当前请求
+     * @param $post_md5：post请求时，body的md5值
+     * @return string
+     */
+    private function _genSignData($path, $url_params, $rtick, $post_md5)
     {
-        echo 'sign contract333333';
+        $request_path = parse_url($this->_serverHost . $path)['path'];
+
+        $url_params['developerId'] = $this->_developerId;
+        $url_params['rtick'] = $rtick;
+        $url_params['signType'] = 'rsa';
+
+        ksort($url_params);
+
+        $sign_data = '';
+        foreach ($url_params as $key => $value)
+        {
+            $sign_data = $sign_data . $key . '=' . $value;
+        }
+        $sign_data = $sign_data . $request_path;
+
+        if (null != $post_md5)
+        {
+            $sign_data = $sign_data . $post_md5;
+        }
+
+        return $sign_data;
+    }
+
+    private function _getRequestUrl($path, $url_params, $sign, $rtick)
+    {
+        $url = $this->_serverHost .$path . '?';
+
+        //url
+        $url_params['sign'] = $sign;
+        $url_params['developerId'] = $this->_developerId;
+        $url_params['rtick'] = $rtick;
+        $url_params['signType'] = 'rsa';
+
+        foreach ($url_params as $key => $value)
+        {
+            $value = urlencode($value);
+            $url = $url . $key . '=' . $value . '&';
+        }
+
+        $url = substr($url, 0, -1);
+        return $url;
+    }
+
+    /**
+     * 组合生成签名和生成url
+     * @param $path
+     * @param null $url_param
+     * @param $post_data
+     * @throws \Exception
+     */
+    private function _getApiUrl($path, $url_param, $post_data)
+    {
+
+        //md5 post_data
+        $md5_post_data = ($post_data != null) ? md5($post_data) : null;
+
+        //rtick
+        $rtick = time().rand(1000, 9999);
+
+        //sign data
+        $sign_data = $this->_genSignData($path, $url_param, $rtick, $md5_post_data);
+
+        //sign
+        $sign = $this->getRsaSign($sign_data);
+
+        //url
+        $url = $this->_getRequestUrl($path, $url_param, $sign, $rtick);
+
+        return $url;
+    }
+
+
+
+
+
+
+    /*
+     * * * * * * * * * * * * *
+     * api method
+     * * * * * * * * * * * * *
+     */
+
+
+    /**
+     * ~~~ 异步申请状态查询 POST
+     */
+    public function asyncApplyCertStatus($data)
+    {
+        $path = self::AsyncApplyCertStatus;
+        $post_data = json_encode([
+            'account' => $data['account'],                 //用户唯一标识
+            'taskId' => $data['taskId'],                  //任务单号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * ~~~ 获取证书详细信息 POST
+     */
+    public function certInfo($data)
+    {
+        $path = self::CertInfo;
+
+        $post_data = json_encode([
+            'account' => $data['account'],                 //用户唯一标识
+            'certId' => $data['certId'],                  //证书编号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+
+    /**
+     * ~~~ 上传用户签名/印章图片 POST
+     */
+    public function signatureImageUserUpload($data)
+    {
+        $path = self::SignatureImageUserUpload;
+
+        $post_data = json_encode([
+            'account' => $data['account'],                //用户唯一标识
+            'imageData' => $data['imageData']               //图片文件内容,图片经 Base64 编码后的字符串
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * ~~~ 上传合同文件 POST
+     */
+    public function storageUpload($data)
+    {
+        $path = self::StorageUpload;
+        $post_data = json_encode([
+            'account' => $data['account'],                 //用户唯一标识
+            'fdata' => $data['fdata'],                   //文件数据，base64编码
+            'fmd5' => $data['fmd5'],                    //文件md5值
+            'ftype' => $data['ftype'],                   //文件类型
+            'fname' => $data['fname'],                   //文件名
+            'fpages' => $data['fpages'],                  //文件页数
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * ~~~ 为PDF文件添加元素 POST
+     */
+    public function storageAddPDFElements($data)
+    {
+        $path = self::StorageAddPDFElements;
+        $post_data = json_encode([
+            'account' => $data['account'],                 //用户唯一标识
+            'fid' => $data['fid'],                     //源文件编号,源文件必须是 PDF 文件格式
+            'elements' => $data['elements'],                //要添加的元素集合,json array 格式
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * ~~~ 下载文件 GET
+     */
+    public function storageDownload($data)
+    {
+        $path = self::StorageDownload;
+
+        $url_params['fid'] = $data['fid'];  //上传合同文件得到的文件编号
+
+        //url
+        $url = $this->_getApiUrl($path, $url_params, null);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('GET', $url, null, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * ~~~ PDF文件验签 POST
+     */
+    public function PDFVerifySignatures($data)
+    {
+        $path = self::PDFVerifySignatures;
+
+        $post_data = json_encode([
+            'pdfData' => $data['pdfData'],                     //PDF 文件 base64 编码过的字符串
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * ~~~ 上传并创建合同 POST
+     */
+    public function storageContractUpload($data)
+    {
+        $path = self::StorageContractUpload;
+
+        $post_data = json_encode([
+            'account' => $data['account'],                //用户唯一标识
+            'fmd5' => $data['fmd5'],                   //文件 md5 值
+            'ftype' => $data['ftype'],                  //文件类型
+            'fname' => $data['fname'],                  //文件名
+            'fpages' => $data['fpages'],                 //文件页数
+            'fdata' => $data['fdata'],                  //文件数据， base64 编码
+            'title' => $data['title'],                  //合同标题
+            'expireTime' => $data['expireTime'],             //合同能够签署 的截止时间
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * ~~~ 签署合同（即自动签）   POST
+     */
+    public function contractSignCert($data)
+    {
+        $path = self::ContractSignCert;
+        $post_data = json_encode([
+            'contractId' => $data['contractId'],                 //合同编号
+            'signer' => $data['signer'],                     //签署者
+            'signaturePositions' => $data['signaturePositions']           //指定的签署 位 置 ， json array 格式
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * ~~~ 发送合同（即手动签，指定图片大小） POST
+     */
+    public function contractSend($data)
+    {
+        $path = self::ContractSend;
+
+        $post_data = json_encode([
+            'contractId' => $data['contractId'],                                    //合同编号
+            'signer' => $data['signer'],                                            //签署者
+            'signaturePositions' => $data['signaturePositions'],                    //签名位置坐标列表
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+
+    }
+
+    /**
+     * ~~~ 撤销合同 POST
+     */
+    public function contractCancel($data)
+    {
+        $path = self::ContractCancel;
+        $post_data = json_encode([
+            'contractId' => $data['contractId'],                 //合同编号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * ~~~ 创建合同 POST
+     */
+    public function contractCreate($data)
+    {
+        $path = self::ContractCreate;
+        $post_data = json_encode([
+            'contractId' => $data['contractId'],              //合同编号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * ~~~ 关键字定位签署合同 POST
+     * @param $data
+     * @return mixed
+     * @throws \Exception
+     */
+    public function contractSignKeywords($data)
+    {
+        $path = self::ContractSignKeywords;
+
+        $post_data = json_encode([
+            'contractId' => $data['contractId'],              //合同编号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * ~~~ 在线验签（通过合同ID和哈希值） POST
+     * @param $data
+     * @return mixed
+     * @throws \Exception
+     */
+    public function contractVerifyContractFileHash($data)
+    {
+        $path = self::ContractVerifyContractFileHash;
+
+        $post_data = json_encode([
+            'contractId' => $data['contractId'],              //合同编号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * ~~~ 获取存证页URL POST
+     * @param $data
+     * @return mixed
+     * @throws \Exception
+     */
+    public function contractGetApplyArbitrationURL($data)
+    {
+        //
+        $path = self::ContractGetApplyArbitrationURL;
+
+        $post_data = json_encode([
+            'contractId' => $data['contractId'],              //合同编号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * ~~~ 通过模版创建合同 POST
+     * @param $data
+     * @return mixed
+     * @throws \Exception
+     */
+    public function contractCreateByTemplate($data)
+    {
+
+        $path = self::ContractCreateByTemplate;
+
+        $post_data = json_encode([
+            'account' => $data['account'],               //合同创建者账号
+            'tid' => $data['tid'],                   //模版编号
+            'templateToken' => $data['templateToken'],         ///template/createContractPdf/ 返回的 templateToken
+            'title' => $data['title'],                 //合同标题
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 获取创建模版的地址 POST
+     * @param $data
+     * @return mixed
+     * @throws \Exception
+     */
+    public function pageTemplateCreate($data)
+    {
+        $path = self::PageTemplateCreate;
+
+        $post_data = json_encode([
+            'account' => $data['account'],               //操作者的用户标识
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 获取编辑模版的地址 POST
+     * @param $data
+     * @return mixed
+     * @throws \Exception
+     */
+    public function pageTemplateModify($data)
+    {
+        $path = self::PageTemplateModify;
+
+        $post_data = json_encode([
+            'account' => $data['account'],            //表示开发者是把这个页面提供给哪个用户操作的，这个用户标识必须已经调用“注册用户”接口在上上签系统里创建过，否则这里会报“user not exists”
+            'tid' => $data['tid'],                    //模版编号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 查询证书编号 POST
+     * @param $data
+     * @return mixed
+     * @throws \Exception
+     */
+    public function getCert($data)
+    {
+        $path = self::GetCertUri;
+
+        $post_data = json_encode([
+            'account' => $data['account']                 //用户唯一标识
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+    /**
+     * 获取个人用户的证件信息
+     */
+    public function getPersonalCredential($data)
+    {
+        $path = self::GetPersonalCredential;
+
+        //post data
+        $post_data['account'] = $data['account'];
+        $post_data = json_encode($post_data);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 获取模版变量
+     * method post
+     */
+    public function templateGetTemplateVars($data)
+    {
+
+        $path = self::TemplateGetTemplateVars;
+
+        //post data
+        $post_data['tid'] = $data['tid'];                                   //模版编号
+        $post_data['isRetrieveAllVars'] = $data['isRetrieveAllVars'];       //是否获取所有变量,0 只返回变量的type 和 name；  1 返回变量的所有字段；
+        $post_data = json_encode($post_data);
+
+        //rtick
+        $rtick = time().rand(1000, 9999);
+
+        //sign data
+        $sign_data = $this->_genSignData($path, null, $rtick, md5($post_data));
+
+        //sign
+        $sign = $this->getRsaSign($sign_data);
+
+        //url
+        $url = $this->_getRequestUrl($path, null, $sign, $rtick);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 通过模版生成合同文件 post
+     */
+    public function templateCreateContractPdf($data)
+    {
+
+        $path = self::TemplateCreateContractPdf;
+
+        $post_data = [
+            'account' => $data['account'],                  //合同创建者账号
+            'tid' => $data['tid'],                          //模版编号
+            'templateValues' => $data['templateValues'] ?? '',         //模版变量
+            'groupValues' => $data['groupValues'] ?? '',         //模版变量
+        ];
+        $post_data = json_encode($post_data);
+
+        //rtick
+        $rtick = time().rand(1000, 9999);
+
+        //sign data
+        $sign_data = $this->_genSignData($path, null, $rtick, md5($post_data));
+
+        //sign
+        $sign = $this->getRsaSign($sign_data);
+
+        //url
+        $url = $this->_getRequestUrl($path, null, $sign, $rtick);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 查询合同信息 POST
+     */
+    public function contractGetInfo($data)
+    {
+        $path = self::ContractGetInfo;
+
+        $post_data = json_encode([
+            'contractId' => $data['contractId'],                 //合同编号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 上传模板变量创建合同 POST
+     */
+    public function distTemplateCreateContract($data)
+    {
+        $path = self::DistTemplateCreateContract;
+
+        $post_data = json_encode([
+            'tid' => $data['tid'],               //模版编号
+            'account' => $data['account'],           //操作者的用户标识
+            'templateValues' => $data['templateValues'],    //模版变量
+            'title' => $data['title'],             //合同标题
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 获取模版信息 POST
+     */
+    public function templateGetTemplate($data)
+    {
+        $path = self::TemplateGetTemplate;
+
+        $post_data = json_encode([
+            'tid' => $data['tid'],                   //模版编号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 获取合同签署参数 POST
+     */
+    public function contractGetSignerConfig($data)
+    {
+
+        $path = self::ContractGetSignerConfig;
+
+        $post_data = json_encode([
+            'account' => $data['account'],                 //签署者
+            'contractId' => $data['contractId'],              //合同编号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 用模版变量签署合同
+     */
+    public function contractSignTemplate($data)
+    {
+
+        $path = self::ContractSignTemplate;
+
+        $post_data = json_encode([
+            'contractId' => $data['contractId'],            //合同编号
+            'tid' => $data['tid'],                   //模版编号
+            'vars' => $data['vars'],                  //模版变量值
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+
+    /**
+     * 用模版变量的手动签
+     */
+    public function contractSendByTemplate($data)
+    {
+        $path = self::ContractSendByTemplate;
+
+        $post_data = json_encode([
+            'contractId' => $data['contractId'],               //合同创建者账号
+            'signer' => $data['signer'],                //指定给哪个用户看
+            'tid' => $data['tid'],                   //模版编号
+            'varNames' => $data['varNames'],              //模板的变量名称
+            'returnUrl' => $data['returnUrl'] ?? '',
+            'pushUrl' => $data['pushUrl'] ?? '',
+//            'vcodeMobile' => $data['vcodeMobile'] ?? '',              //校验手机号
+//            'isDrawSignatureImage' => $data['isDrawSignatureImage'],              //手动签署时是否手绘签名
+//            'signatureImageName' => $data['signatureImageName'] ?? 'default',              //签名/印章图片
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+
+    //注册个人用户并申请证书
+    public function register($data)
+    {
+
+        $path = self::RegisterUri;
+
+        //需要的必填参数
+        $post_data = json_encode([
+            'account' => $data['account'],                 //用户的唯一标识，可以是邮箱、手机号、证件号
+            'name' => $data['name'],                            //用户名称,必须和证件上登记的姓名一致
+            'userType' => $data['userType'],                          //用户类型,1 表示个人
+            'credential' => $data['credential'],
+            'applyCert' => $data['applyCert'],                         //是否申请证书，申请填写为1
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 生成用户签名/印章图片
+     */
+    public function signatureImageUserCreate($data)
+    {
+
+        $path = self::SignatureImageUserCreate;
+
+        $post_data = json_encode([
+            'account' => $data['account']                 //用户唯一标识
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 下载用户签名/印章图片 GET
+     */
+    public function signatureImageUserDownload($data)
+    {
+
+        $path = self::SignatureImageUserDownload;
+
+        $url_params['account'] = $data['account'];
+        $url_params['imageName'] = $data['imageName'] ?? '';
+
+        //url
+        $url = $this->_getApiUrl($path, $url_params, null);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('GET', $url, null, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 查询企业用户证件信息 POST
+     */
+    public function getEnterpriseCredential($data)
+    {
+        $path = self::GetEnterpriseCredential;
+
+        $post_data = json_encode([
+            'account' => $data['account']                 //用户唯一标识
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+
+    //注册企业用户并申请证书
+    public function registerCompany($data)
+    {
+        $path = self::RegisterUri;
+
+        //需要的必填参数
+        $post_data = json_encode([
+            'account' => $data['account'],                 //用户的唯一标识，可以是邮箱、手机号、证件号
+            'name' => $data['name'],                            //企业名称,必须和证件上登记的姓名一致
+            'userType' => '2',                          //用户类型,1 表示个人，2 表示企业
+            'credential' => $data['credential'],
+            'applyCert' => $data['applyCert'] ?? 1,                         //是否申请证书，申请填写为1
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 锁定并结束合同 POST
+     */
+    public function storageContractLock($data)
+    {
+        $path = self::StorageContractLock;
+
+        $post_data = json_encode([
+            'contractId' => $data['contractId'],                 //合同编号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 查询合同签署者状态 POST
+     */
+    public function contractGetSignerStatus($data)
+    {
+        $path = self::ContractGetSignerStatus;
+
+        $post_data = json_encode([
+            'contractId' => $data['contractId']
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 、获取预览页URL POST
+     */
+    public function contractGetPreviewURL($data)
+    {
+        $path = self::ContractGetPreviewURL;
+
+        $post_data = json_encode([
+            'account' => $data['account'],              //合同编号
+            'contractId' => $data['contractId'],              //合同编号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 生成合同附页 POST
+     */
+    public function contractCreateAttachment($data)
+    {
+        $path = self::ContractCreateAttachment;
+
+        $post_data = json_encode([
+            'contractId' => $data['contractId'],              //合同编号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 下载合同文件 GET
+     */
+    public function contractDownload($data)
+    {
+        $path = self::ContractDownload;
+
+        $url_params['contractId'] = $data['contractId'];
+
+        //url
+        $url = $this->_getApiUrl($path, $url_params, null);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('GET', $url, null, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 下载合同附页文件 GET
+     */
+    public function contractDownloadAttachment($data)
+    {
+        $path = self::ContractDownloadAttachment;
+
+        $url_params['contractId'] = $data['contractId'];
+
+        //url
+        $url = $this->_getApiUrl($path, $url_params, null);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('GET', $url, null, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 获取开发者模版列表
+     */
+    public function templateGetTemplates($data)
+    {
+        $path = self::TemplateGetTemplates;
+
+        $post_data = json_encode([
+            'categoryName' => $data['categoryName'],               //类别名称
+            'pageSize' => $data['pageSize'],               //每页显示的条数
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 核验上上签SaaS用户实名认证状态
+     */
+    public function realNameStatusBestsign($data)
+    {
+        $path = self::RealNameStatusBestsign;
+
+        $post_data = json_encode([
+            'account' => $data['account'],               //
+            'userType' => $data['userType'],               //每页显示的条数
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 生成企业印章图片 POST
+     */
+    public function distSignatureImageEntCreate($data)
+    {
+        $path = self::DistSignatureImageEntCreate;
+
+        $post_data = json_encode([
+            'account' => $data['account'],               //账号
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+    /**
+     * 预览模板 POST
+     */
+    public function pageTemplatePreview($data)
+    {
+        $path = self::PageTemplatePreview;
+
+        $post_data = json_encode([
+            'tid' => $data['tid'],               //模版编号
+            'account' => $data['account'],               //操作者的用户标识
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
+    }
+
+
+    /**
+     * 合同PDF文件上添加附件 POST
+     */
+    public function distContractPdfAddAttachment($data)
+    {
+
+        $path = self::DistContractPdfAddAttachment;
+
+        $post_data = json_encode([
+            'contractId' => $data['contractId'],         //合同编号
+            'fname' => $data['fname'],              //附件名称
+            'fdata' => $data['fdata'],              //附件文件，base64编码字符串（文件最大不得超过10MB）
+            'fdescription' => $data['fdescription']        //附件描述
+        ]);
+
+        //url
+        $url = $this->_getApiUrl($path, null, $post_data);
+
+        //header data
+        $header_data = array();
+
+        //content
+        $response = $this->execute('POST', $url, $post_data, $header_data, true);
+
+        return $response;
     }
 
 }
