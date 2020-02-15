@@ -1,10 +1,10 @@
 <?php
 
 /**
- * 电子合同签署 - 对接上上签
+ * 电子合同签署 - 对接上上签平台
  */
 
-namespace RanPack\SignContract;
+namespace Taoran\SignContract;
 
 require(__DIR__ . '/util/HttpUtils.php');
 

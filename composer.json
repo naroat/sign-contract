@@ -1,11 +1,14 @@
 {
-    "name": "ranpack/sign-contract",
+    "name": "taoran/sign-contract",
     "description": "sign-contract",
     "license": "MIT",
+    "keywords": ["php", "bestsign"],
+    "homepage": "https://github.com/taoran1401/sign-contract",
     "authors": [
         {
             "name": "taoran",
-            "email": "15013070796@163.com"
+            "email": "15013070796@163.com",
+            "homepage": "http://ranblogs.com"
         }
     ],
     "require": {
@@ -13,7 +16,7 @@
     },
     "autoload": {
         "psr-4": {
-            "RanPack\\SignContract\\" : "src/"
+            "Taoran\\SignContract\\" : "src/"
         }
     }
 }
